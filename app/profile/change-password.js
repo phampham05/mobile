@@ -1,88 +1,81 @@
 import {
-  View,
+  Alert,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  Text,
-  StyleSheet,
-  Alert,
+  View,
 } from "react-native";
-import { useState, useContext } from "react";
+import { useContext, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { UserContext } from "../../context/UserContext";
+import { getUserFriendlyErrorMessage } from "../../utils/errorMessages";
 
 export default function ChangePassword() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [errors, setErrors] = useState({});
-
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [focusField, setFocusField] = useState(null);
 
   const { changePassword } = useContext(UserContext);
 
-  // Hàm kiểm tra dữ liệu
   const validate = () => {
-    let newErrors = {};
+    const nextErrors = {};
 
     if (!currentPassword.trim()) {
-      newErrors.currentPassword = "Vui lòng nhập mật khẩu hiện tại";
+      nextErrors.currentPassword = "Vui lòng nhập mật khẩu hiện tại.";
     }
 
     if (!newPassword.trim()) {
-      newErrors.newPassword = "Vui lòng nhập mật khẩu mới";
+      nextErrors.newPassword = "Vui lòng nhập mật khẩu mới.";
     } else if (newPassword.length < 6) {
-      newErrors.newPassword = "Mật khẩu phải có ít nhất 6 ký tự";
+      nextErrors.newPassword = "Mật khẩu mới phải có ít nhất 6 ký tự.";
     } else if (newPassword === currentPassword) {
-      newErrors.newPassword = "Mật khẩu mới phải khác mật khẩu hiện tại";
+      nextErrors.newPassword = "Mật khẩu mới phải khác mật khẩu hiện tại.";
     }
 
     if (!confirmPassword.trim()) {
-      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
+      nextErrors.confirmPassword = "Vui lòng xác nhận mật khẩu mới.";
     } else if (confirmPassword !== newPassword) {
-      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
+      nextErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  // Xử lý đổi mật khẩu
   const handleChangePassword = async () => {
     if (!validate()) return;
-  
+
     try {
       await changePassword(currentPassword, newPassword);
-  
-      Alert.alert("Thành công", "Đổi mật khẩu thành công!");
-  
+
+      Alert.alert("Thành công", "Mật khẩu đã được cập nhật.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setErrors({});
     } catch (error) {
-      Alert.alert(
-        "Lỗi",
-        error.response?.data?.message || "Đổi mật khẩu thất bại"
-      );
+      Alert.alert("Không thể đổi mật khẩu", getUserFriendlyErrorMessage(error, "changePassword"));
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Mật khẩu hiện tại */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}> <Text style={{color: "red"}}>*</Text> Mật khẩu hiện tại</Text>
-
-        <View style={[
+        <Text style={styles.label}>
+          <Text style={styles.required}>*</Text> Mật khẩu hiện tại
+        </Text>
+        <View
+          style={[
             styles.passwordContainer,
-            focusField === "current" && { borderColor: "#1E88E5" }
-          ]}>
-
+            focusField === "current" && styles.passwordContainerFocused,
+          ]}
+        >
           <TextInput
             placeholder="Nhập mật khẩu hiện tại"
             placeholderTextColor="gray"
@@ -93,9 +86,7 @@ export default function ChangePassword() {
             onFocus={() => setFocusField("current")}
             onBlur={() => setFocusField(null)}
           />
-          <TouchableOpacity
-            onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-          >
+          <TouchableOpacity onPress={() => setShowCurrentPassword((value) => !value)}>
             <Ionicons
               name={showCurrentPassword ? "eye-off-outline" : "eye-outline"}
               size={22}
@@ -103,20 +94,19 @@ export default function ChangePassword() {
             />
           </TouchableOpacity>
         </View>
-        {errors.currentPassword && (
-          <Text style={styles.error}>{errors.currentPassword}</Text>
-        )}
+        {errors.currentPassword ? <Text style={styles.error}>{errors.currentPassword}</Text> : null}
       </View>
 
-      {/* Mật khẩu mới */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}> <Text style={{color: "red"}}>*</Text> Mật khẩu mới</Text>
-
-        <View style={[
+        <Text style={styles.label}>
+          <Text style={styles.required}>*</Text> Mật khẩu mới
+        </Text>
+        <View
+          style={[
             styles.passwordContainer,
-            focusField === "new" && { borderColor: "#1E88E5" }
-          ]}>
-
+            focusField === "new" && styles.passwordContainerFocused,
+          ]}
+        >
           <TextInput
             placeholder="Nhập mật khẩu mới"
             placeholderTextColor="gray"
@@ -127,9 +117,7 @@ export default function ChangePassword() {
             onFocus={() => setFocusField("new")}
             onBlur={() => setFocusField(null)}
           />
-          <TouchableOpacity
-            onPress={() => setShowNewPassword(!showNewPassword)}
-          >
+          <TouchableOpacity onPress={() => setShowNewPassword((value) => !value)}>
             <Ionicons
               name={showNewPassword ? "eye-off-outline" : "eye-outline"}
               size={22}
@@ -137,20 +125,19 @@ export default function ChangePassword() {
             />
           </TouchableOpacity>
         </View>
-        {errors.newPassword && (
-          <Text style={styles.error}>{errors.newPassword}</Text>
-        )}
+        {errors.newPassword ? <Text style={styles.error}>{errors.newPassword}</Text> : null}
       </View>
 
-      {/* Xác nhận mật khẩu */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}> <Text style={{color: "red"}}>*</Text> Xác nhận mật khẩu</Text>
-
-        <View style={[
+        <Text style={styles.label}>
+          <Text style={styles.required}>*</Text> Xác nhận mật khẩu
+        </Text>
+        <View
+          style={[
             styles.passwordContainer,
-            focusField === "confirm" && { borderColor: "#1E88E5" }
-          ]}>
-
+            focusField === "confirm" && styles.passwordContainerFocused,
+          ]}
+        >
           <TextInput
             placeholder="Nhập lại mật khẩu mới"
             placeholderTextColor="gray"
@@ -161,11 +148,7 @@ export default function ChangePassword() {
             onFocus={() => setFocusField("confirm")}
             onBlur={() => setFocusField(null)}
           />
-          <TouchableOpacity
-            onPress={() =>
-              setShowConfirmPassword(!showConfirmPassword)
-            }
-          >
+          <TouchableOpacity onPress={() => setShowConfirmPassword((value) => !value)}>
             <Ionicons
               name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
               size={22}
@@ -173,12 +156,9 @@ export default function ChangePassword() {
             />
           </TouchableOpacity>
         </View>
-        {errors.confirmPassword && (
-          <Text style={styles.error}>{errors.confirmPassword}</Text>
-        )}
+        {errors.confirmPassword ? <Text style={styles.error}>{errors.confirmPassword}</Text> : null}
       </View>
 
-      {/* Nút đổi mật khẩu */}
       <TouchableOpacity style={styles.button} onPress={handleChangePassword}>
         <Text style={styles.buttonText}>Đổi mật khẩu</Text>
       </TouchableOpacity>
@@ -192,37 +172,39 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#F4F6F8",
   },
-
   inputGroup: {
     marginBottom: 15,
     borderColor: "#CCC",
     paddingHorizontal: 10,
     marginTop: 15,
   },
-
   label: {
     marginBottom: 5,
     fontSize: 15,
     fontWeight: "500",
   },
-
+  required: {
+    color: "red",
+  },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderRadius: 8,
+    borderColor: "#CCC",
     backgroundColor: "#FFF",
     paddingLeft: 10,
     paddingRight: 10,
   },
-
+  passwordContainerFocused: {
+    borderColor: "#1E88E5",
+  },
   input: {
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
     borderWidth: 0,
   },
-
   button: {
     backgroundColor: "#1E88E5",
     padding: 15,
@@ -230,13 +212,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 20,
   },
-
   buttonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
   },
-
   error: {
     color: "red",
     fontSize: 12,

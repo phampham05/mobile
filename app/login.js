@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 import { UserContext } from "../context/UserContext";
+import { getUserFriendlyErrorMessage } from "../utils/errorMessages";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function LoginScreen() {
       Toast.show({
         type: "error",
         text1: "Thiếu thông tin",
-        text2: "Vui lòng nhập email và mật khẩu.",
+        text2: "Vui lòng nhập đầy đủ email và mật khẩu.",
       });
       return;
     }
@@ -43,9 +44,7 @@ export default function LoginScreen() {
       Toast.show({
         type: "error",
         text1: "Đăng nhập thất bại",
-        text2:
-          error.response?.data?.message ||
-          "Không thể đăng nhập. Kiểm tra lại tài khoản hoặc API.",
+        text2: getUserFriendlyErrorMessage(error, "login"),
       });
     } finally {
       setSubmitting(false);
