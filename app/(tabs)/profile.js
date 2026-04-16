@@ -1,14 +1,8 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useContext } from "react";
-import { UserContext } from "../../context/UserContext";
 import { useRouter } from "expo-router";
+import { UserContext } from "../../context/UserContext";
 
 export default function Profile() {
   const { user, logout } = useContext(UserContext);
@@ -23,6 +17,12 @@ export default function Profile() {
           onPress={() => router.push("/login")}
         >
           <Text style={styles.loginButtonText}>Đăng nhập</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={() => router.push("/register")}
+        >
+          <Text style={styles.registerButtonText}>Tạo tài khoản</Text>
         </TouchableOpacity>
       </View>
     );
@@ -44,36 +44,26 @@ export default function Profile() {
 
   return (
     <View style={styles.container}>
-      {/* Avatar & Name */}
       <View style={styles.header}>
         <Image source={{ uri: user.avatar }} style={styles.avatar} />
         <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.email}>{user.email}</Text>
       </View>
 
-      {/* Thông tin người dùng */}
       <View style={styles.card}>
         {renderItem("call-outline", "Số điện thoại", user.phone)}
         {renderItem("location-outline", "Địa chỉ", user.address)}
       </View>
 
-      {/* Tùy chọn */}
       <View style={styles.card}>
-        {renderItem(
-          "create-outline",
-          "Chỉnh sửa hồ sơ",
-          "",
-          () => router.push("/profile/edit")
+        {renderItem("create-outline", "Chỉnh sửa hồ sơ", "", () =>
+          router.push("/profile/edit")
         )}
-        {renderItem(
-          "lock-closed-outline",
-          "Đổi mật khẩu",
-          "",
-          () => router.push("/profile/change-password")
+        {renderItem("lock-closed-outline", "Đổi mật khẩu", "", () =>
+          router.push("/profile/change-password")
         )}
       </View>
 
-      {/* Đăng xuất */}
       <TouchableOpacity style={styles.logoutButton} onPress={logout}>
         <Ionicons name="log-out-outline" size={20} color="#fff" />
         <Text style={styles.logoutText}>Đăng xuất</Text>
@@ -88,34 +78,40 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F6F8",
     padding: 16,
   },
-
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 24,
   },
-
   loginText: {
     fontSize: 16,
     marginBottom: 10,
+    color: "#4C5663",
   },
-
   loginButton: {
     backgroundColor: "#1E88E5",
-    padding: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 10,
   },
-
   loginButtonText: {
     color: "#fff",
     fontWeight: "bold",
   },
-
+  registerButton: {
+    marginTop: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  registerButtonText: {
+    color: "#1E88E5",
+    fontWeight: "bold",
+  },
   header: {
     alignItems: "center",
     marginBottom: 20,
   },
-
   avatar: {
     width: 110,
     height: 110,
@@ -123,18 +119,15 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#1E88E5",
   },
-
   name: {
     fontSize: 20,
     fontWeight: "bold",
     marginTop: 10,
   },
-
   email: {
     fontSize: 14,
     color: "gray",
   },
-
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -145,7 +138,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
   },
-
   item: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -155,22 +147,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: "#ddd",
   },
-
   itemLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-
   itemLabel: {
     fontSize: 15,
   },
-
   itemValue: {
     fontSize: 14,
     color: "gray",
+    flex: 1,
+    textAlign: "right",
+    marginLeft: 12,
   },
-
   logoutButton: {
     flexDirection: "row",
     backgroundColor: "#E53935",
@@ -180,7 +171,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-
   logoutText: {
     color: "#fff",
     fontWeight: "bold",
