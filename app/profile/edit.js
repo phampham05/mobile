@@ -1,207 +1,316 @@
-// import {
-//     View,
-//     TextInput,
-//     TouchableOpacity,
-//     Text,
-//     Image,
-//     StyleSheet,
-//     Alert
-//   } from "react-native";
-//   import { useContext, useState } from "react";
-//   import { UserContext } from "../../context/UserContext";
-//   import * as ImagePicker from "expo-image-picker";
-  
-//   export default function EditProfile() {
-//     const { user, updateUser } = useContext(UserContext);
-  
-//     const [name, setName] = useState(user.name);
-//     const [email, setEmail] = useState(user.email);
-//     const [phone, setPhone] = useState(user.phone);
-//     const [address, setAddress] = useState(user.address);
-//     const [avatar, setAvatar] = useState(user.avatar);
+import { useContext, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { UserContext } from "../../context/UserContext";
+import { getUserFriendlyErrorMessage } from "../../utils/errorMessages";
 
-//     const [errors, setErrors] = useState({});
+const FULL_NAME_REGEX = /^[A-Za-zÀ-ỹ]+(?:\s+[A-Za-zÀ-ỹ]+)+$/u;
+const PHONE_REGEX = /^(0|\+84)\d{9}$/;
 
-//     const validate = () => {
-//       let newErrors = {};
-    
-//       // Kiểm tra tên
-//       if (!name.trim()) {
-//         newErrors.name = "Họ và tên không được để trống";
-//       }
-    
-//       // Kiểm tra email
-//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-//       if (!email.trim()) {
-//         newErrors.email = "Email không được để trống";
-//       } else if (!emailRegex.test(email)) {
-//         newErrors.email = "Email không hợp lệ";
-//       }
-    
-//       // Kiểm tra số điện thoại Việt Nam
-//       const phoneRegex = /^(0|\+84)[0-9]{9}$/;
-//       if (!phone.trim()) {
-//         newErrors.phone = "Số điện thoại không được để trống";
-//       } else if (!phoneRegex.test(phone)) {
-//         newErrors.phone = "Số điện thoại không hợp lệ";
-//       }
+function normalizeSpaces(value) {
+  return value.trim().replace(/\s+/g, " ");
+}
 
-//       setErrors(newErrors);
-//       return Object.keys(newErrors).length === 0;
-//     };
-  
-//     // chọn ảnh
-//     const pickImage = async () => {
-//       const result = await ImagePicker.launchImageLibraryAsync({
-//         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-//         quality: 1,
-//       });
-  
-//       if (!result.canceled) {
-//         setAvatar(result.assets[0].uri);
-//       }
-//     };
-  
-//     const handleSave = () => {
-//       if (!validate()) return;
+function FormField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType,
+  multiline,
+  error,
+  editable = true,
+  icon,
+}) {
+  return (
+    <View style={styles.fieldGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={[styles.inputWrapper, multiline && styles.multilineWrapper, !editable && styles.readOnlyWrapper]}>
+        {icon ? <Ionicons name={icon} size={20} color="#7E8792" /> : null}
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#98A2AE"
+          keyboardType={keyboardType}
+          editable={editable}
+          multiline={multiline}
+          style={[styles.input, multiline && styles.multilineInput, !editable && styles.readOnlyInput]}
+        />
+      </View>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
+  );
+}
 
-//       updateUser({ name, email, phone, address, avatar });
+export default function EditProfileScreen() {
+  const { user, updateUser } = useContext(UserContext);
 
-//       Alert.alert("Thành công", "Cập nhật hồ sơ thành công!");
-//     };
-  
-//     return (
-//       <View style={styles.container}>
-//         <TouchableOpacity onPress={pickImage}>
-//           <Image source={{ uri: avatar }} style={styles.avatar} />
-//           <Text style={styles.positionAvt}>Chọn ảnh</Text>
-//         </TouchableOpacity>
-      
-//         <View style={styles.inputGroup}>
-//           <Text style={styles.label}> <Text style={{color: "red"}}>*</Text> Họ và tên </Text>
-//           <TextInput 
-//             value={name} 
-//             onChangeText={setName} 
-//             placeholder= "Nhập tên của bạn" 
-//             placeholderTextColor="gray"
-//             style={[styles.input, { fontSize: 15 }]} />
-          
-//           {errors.name && <Text style={styles.error}>{errors.name}</Text>}
-//         </View>
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
-//         <View style={styles.inputGroup}>
-//           <Text style={styles.label}> <Text style={{color: "red"}}>*</Text> Email </Text>
-//           <TextInput 
-//             value={email} 
-//             onChangeText={setEmail} 
-//             placeholder= "Nhập email của bạn" 
-//             placeholderTextColor="gray"
-//             style={[styles.input, { fontSize: 15 }]} />
+  useEffect(() => {
+    if (!user) return;
 
-//           {errors.email && <Text style={styles.error}>{errors.email}</Text>}
-//         </View>
+    setName(user.name ?? "");
+    setPhone(user.phone ?? "");
+    setAddress(user.address ?? "");
+  }, [user]);
 
-//         <View style={styles.inputGroup}>
-//           <Text style={styles.label}> <Text style={{color: "red"}}>*</Text> Số Điện Thoại </Text>
-//           <TextInput 
-//             value={phone} 
-//             onChangeText={setPhone} 
-//             placeholder= "Nhập số điện thoại" 
-//             placeholderTextColor="gray"
-//             style={[styles.input, { fontSize: 15 }]} />
+  const validate = () => {
+    const nextErrors = {};
+    const normalizedName = normalizeSpaces(name);
 
-//           {errors.phone && <Text style={styles.error}>{errors.phone}</Text>}
-//         </View>
+    if (!normalizedName) {
+      nextErrors.name = "Vui lòng nhập họ và tên.";
+    } else if (normalizedName.length < 4) {
+      nextErrors.name = "Họ và tên phải có ít nhất 4 ký tự.";
+    } else if (!FULL_NAME_REGEX.test(normalizedName)) {
+      nextErrors.name = "Họ và tên phải gồm ít nhất 2 từ và chỉ chứa chữ cái.";
+    }
 
-//         <View style={styles.inputGroup}>
-//           <Text style={styles.label}> Địa chỉ </Text>
-//           <TextInput 
-//             value={address} 
-//             onChangeText={setAddress} 
-//             placeholder= "Nhập địa chỉ" 
-//             placeholderTextColor="gray"
-//             style={[styles.input, { fontSize: 15 }]} />
-//         </View>
-  
-//         <TouchableOpacity style={styles.button} onPress={handleSave}>
-//           <Text style={{ color: "white", fontSize: 15 }}>Lưu</Text>
-//         </TouchableOpacity>
-//       </View>
-//     );
-//   }
-  
-//   const styles = StyleSheet.create({
-//     container: {
-//       padding: 20,
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//     },
-  
-//     avatar: {
-//       width: 100,
-//       height: 100,
-//       marginTop: 50,
-//       borderRadius: 50,
-//     },
+    if (phone.trim() && !PHONE_REGEX.test(phone.trim())) {
+      nextErrors.phone = "Số điện thoại không hợp lệ.";
+    }
 
-//     positionAvt: {
-//       textAlign: "center",
-//       marginTop: 15,
-//       fontSize: 18,
-//     },
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
 
-//     inputGroup: {
-//       marginTop: 20,
-//       width: "100%",
-//     },
+  const handleSave = async () => {
+    if (!validate()) return;
 
-//     label: {
-//       fontSize: 15,
-//     },
-  
-//     input: {
-//       width: "100%",
-//       borderWidth: 1,
-//       marginTop: 5,
-//       padding: 10,
-//       borderRadius: 8,
-//     },
-  
-//     button: {
-//       width: 65,
-//       marginTop: 22,
-//       backgroundColor: "#1E88E5",
-//       padding: 15,
-//       alignItems: "center",
-//       borderRadius: 10,
-//     },
+    try {
+      setSubmitting(true);
 
-//     error: {
-//       color: "red",
-//       fontSize: 15,
-//       padding: 5,
-//     },
-//   });
+      await updateUser({
+        name: normalizeSpaces(name),
+        phone: phone.trim(),
+        address: address.trim(),
+      });
 
+      Alert.alert("Cập nhật thành công", "Thông tin hồ sơ đã được lưu.");
+    } catch (error) {
+      Alert.alert("Không thể cập nhật hồ sơ", getUserFriendlyErrorMessage(error, "updateProfile"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-
-const handleSave = async () => {
-  if (!validate()) return;
-
-  try {
-    await updateUser({
-      name,
-      email,
-      phone,
-      address,
-      avatar,
-    });
-
-    Alert.alert("Thành công", "Cập nhật hồ sơ thành công!");
-  } catch (error) {
-    Alert.alert(
-      "Lỗi",
-      error.response?.data?.message || "Không thể cập nhật hồ sơ"
+  if (!user) {
+    return (
+      <View style={styles.noticeContainer}>
+        <Ionicons name="person-circle-outline" size={72} color="#9CA3AF" />
+        <Text style={styles.noticeText}>Vui lòng đăng nhập.</Text>
+      </View>
     );
   }
-};
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.avatarCard}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user.name?.trim()?.charAt(0)?.toUpperCase() || "U"}</Text>
+            </View>
+            <Text style={styles.avatarName}>{user.name || "Người dùng"}</Text>
+            <Text style={styles.avatarHint}>Bạn có thể cập nhật tên, số điện thoại và địa chỉ tại đây.</Text>
+          </View>
+
+          <View style={styles.form}>
+            <FormField
+              label="Họ và tên"
+              value={name}
+              onChangeText={setName}
+              placeholder="Nguyễn Văn A"
+              icon="person-outline"
+              error={errors.name}
+            />
+
+            <FormField
+              label="Email"
+              value={user.email ?? ""}
+              placeholder="email@example.com"
+              icon="mail-outline"
+              editable={false}
+            />
+
+            <FormField
+              label="Số điện thoại"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="0901234567"
+              keyboardType="phone-pad"
+              icon="call-outline"
+              error={errors.phone}
+            />
+
+            <FormField
+              label="Địa chỉ"
+              value={address}
+              onChangeText={setAddress}
+              placeholder="Nhập địa chỉ của bạn"
+              icon="location-outline"
+              multiline
+              error={errors.address}
+            />
+
+            <Pressable
+              style={[styles.saveButton, submitting && styles.saveButtonDisabled]}
+              onPress={handleSave}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.saveButtonText}>Lưu thay đổi</Text>
+              )}
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F7F8FB",
+  },
+  flex: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 36,
+  },
+  noticeContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F7F8FB",
+    paddingHorizontal: 24,
+  },
+  noticeText: {
+    marginTop: 14,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#374151",
+  },
+  avatarCard: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 18,
+  },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "#DCE4FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 34,
+    fontWeight: "800",
+    color: "#1149D8",
+  },
+  avatarName: {
+    marginTop: 14,
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#171B23",
+  },
+  avatarHint: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: "center",
+    color: "#6B7280",
+  },
+  form: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+    gap: 18,
+  },
+  fieldGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#374151",
+  },
+  inputWrapper: {
+    minHeight: 56,
+    borderRadius: 18,
+    backgroundColor: "#EEF2F8",
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  multilineWrapper: {
+    minHeight: 110,
+    alignItems: "flex-start",
+    paddingTop: 16,
+  },
+  readOnlyWrapper: {
+    opacity: 0.8,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: "#1F2937",
+  },
+  multilineInput: {
+    minHeight: 78,
+    textAlignVertical: "top",
+  },
+  readOnlyInput: {
+    color: "#6B7280",
+  },
+  errorText: {
+    fontSize: 13,
+    color: "#DC2626",
+  },
+  saveButton: {
+    marginTop: 4,
+    minHeight: 56,
+    borderRadius: 18,
+    backgroundColor: "#1149D8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saveButtonDisabled: {
+    opacity: 0.75,
+  },
+  saveButtonText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "800",
+  },
+});

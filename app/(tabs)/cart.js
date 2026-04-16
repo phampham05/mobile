@@ -1,71 +1,97 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Alert,
   FlatList,
   Image,
-  TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   getCartWithBookDetails,
-  updateCartItem,
   removeCartItem,
+  updateCartItem,
 } from "../../services/cartService";
+import { getUserFriendlyErrorMessage } from "../../utils/errorMessages";
+import { UserContext } from "../../context/UserContext";
+
+const FALLBACK_IMAGE = "https://via.placeholder.com/100x150.png?text=No+Image";
 
 export default function Cart() {
+  const { user } = useContext(UserContext);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) {
+      setCartItems([]);
+      setLoading(false);
+      return;
+    }
+
     fetchCart();
-  }, []);
+  }, [user]);
 
   const fetchCart = async () => {
     try {
       const data = await getCartWithBookDetails();
-      setCartItems(data);
+      setCartItems(Array.isArray(data) ? data : []);
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể tải giỏ hàng.");
+      Alert.alert("Không thể tải giỏ hàng", getUserFriendlyErrorMessage(error));
+      setCartItems([]);
     } finally {
       setLoading(false);
     }
   };
 
   const increaseQuantity = async (item) => {
-    await updateCartItem(item.id, item.quantity + 1);
-    fetchCart();
+    try {
+      await updateCartItem(item.id, item.quantity + 1);
+      fetchCart();
+    } catch (error) {
+      Alert.alert("Không thể cập nhật số lượng", getUserFriendlyErrorMessage(error));
+    }
   };
 
   const decreaseQuantity = async (item) => {
     if (item.quantity === 1) return;
-    await updateCartItem(item.id, item.quantity - 1);
-    fetchCart();
+
+    try {
+      await updateCartItem(item.id, item.quantity - 1);
+      fetchCart();
+    } catch (error) {
+      Alert.alert("Không thể cập nhật số lượng", getUserFriendlyErrorMessage(error));
+    }
   };
 
   const removeItem = async (id) => {
-    Alert.alert("Xác nhận", "Bạn muốn xóa sản phẩm này?", [
-      { text: "Hủy" },
+    Alert.alert("Xác nhận", "Bạn muốn xóa sản phẩm này khỏi giỏ hàng?", [
+      { text: "Hủy", style: "cancel" },
       {
         text: "Xóa",
+        style: "destructive",
         onPress: async () => {
-          await removeCartItem(id);
-          fetchCart();
+          try {
+            await removeCartItem(id);
+            fetchCart();
+          } catch (error) {
+            Alert.alert("Không thể xóa sản phẩm", getUserFriendlyErrorMessage(error));
+          }
         },
       },
     ]);
   };
 
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.quantity * item.price,
-    0
+  const totalPrice = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.quantity * item.price, 0),
+    [cartItems]
   );
 
   const renderStars = (rating = 0) => (
-    <View style={{ flexDirection: "row" }}>
+    <View style={styles.stars}>
       {[1, 2, 3, 4, 5].map((star) => (
         <Ionicons
           key={star}
@@ -79,28 +105,17 @@ export default function Cart() {
 
   const renderItem = ({ item }) => {
     const book = item.book;
-    const imageUrl =
-      book?.image ||
-      "https://via.placeholder.com/100x150.png?text=No+Image";
+    const imageUrl = book?.image || FALLBACK_IMAGE;
 
     return (
       <View style={styles.card}>
         <Image source={{ uri: imageUrl }} style={styles.image} />
 
         <View style={styles.info}>
-          <Text style={styles.title}>
-            {book?.title || "Đang tải..."}
-          </Text>
-
-          <Text style={styles.author}>
-            {book?.author || ""}
-          </Text>
-
+          <Text style={styles.title}>{book?.title || "Đang cập nhật"}</Text>
+          <Text style={styles.author}>{book?.author || "Tác giả đang cập nhật"}</Text>
           {renderStars(book?.rating || 0)}
-
-          <Text style={styles.price}>
-            {item.price.toLocaleString()} đ
-          </Text>
+          <Text style={styles.price}>{item.price.toLocaleString("vi-VN")} đ</Text>
 
           <View style={styles.quantityContainer}>
             <TouchableOpacity onPress={() => decreaseQuantity(item)}>
@@ -122,28 +137,35 @@ export default function Cart() {
     );
   };
 
-  if (loading) {
+  if (!user) {
     return (
-      <ActivityIndicator
-        size="large"
-        color="#1E88E5"
-        style={{ marginTop: 20 }}
-      />
+      <View style={styles.noticeContainer}>
+        <Ionicons name="person-circle-outline" size={72} color="#9CA3AF" />
+        <Text style={styles.noticeText}>Vui lòng đăng nhập.</Text>
+      </View>
     );
+  }
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#1E88E5" style={styles.loading} />;
   }
 
   return (
     <View style={styles.container}>
       <FlatList
         data={cartItems}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>Giỏ hàng đang trống</Text>
+            <Text style={styles.emptyText}>Hãy thêm một vài cuốn sách bạn yêu thích.</Text>
+          </View>
+        }
       />
 
       <View style={styles.footer}>
-        <Text style={styles.totalText}>
-          Tổng tiền: {totalPrice.toLocaleString()} đ
-        </Text>
+        <Text style={styles.totalText}>Tổng tiền: {totalPrice.toLocaleString("vi-VN")} đ</Text>
       </View>
     </View>
   );
@@ -151,6 +173,20 @@ export default function Cart() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F5F5" },
+  loading: { marginTop: 20 },
+  noticeContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 24,
+  },
+  noticeText: {
+    marginTop: 14,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#374151",
+  },
   card: {
     flexDirection: "row",
     backgroundColor: "#FFF",
@@ -175,6 +211,10 @@ const styles = StyleSheet.create({
   author: {
     fontSize: 12,
     color: "gray",
+  },
+  stars: {
+    flexDirection: "row",
+    marginTop: 4,
   },
   price: {
     color: "#1E88E5",
@@ -201,5 +241,21 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "right",
     color: "#E53935",
+  },
+  emptyState: {
+    margin: 16,
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  emptyText: {
+    marginTop: 6,
+    fontSize: 14,
+    color: "#6B7280",
   },
 });

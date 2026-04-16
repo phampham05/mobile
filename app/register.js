@@ -15,6 +15,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 import { UserContext } from "../context/UserContext";
+import { getUserFriendlyErrorMessage } from "../utils/errorMessages";
+
+const FULL_NAME_REGEX = /^[A-Za-zÀ-ỹ]+(?:\s+[A-Za-zÀ-ỹ]+)+$/u;
 
 function AuthInput({
   label,
@@ -48,6 +51,24 @@ function AuthInput({
   );
 }
 
+function validateFullName(fullName) {
+  const normalizedName = fullName.trim().replace(/\s+/g, " ");
+
+  if (!normalizedName) {
+    return "Vui lòng nhập họ và tên.";
+  }
+
+  if (normalizedName.length < 4) {
+    return "Họ và tên phải có ít nhất 4 ký tự.";
+  }
+
+  if (!FULL_NAME_REGEX.test(normalizedName)) {
+    return "Họ và tên phải gồm ít nhất 2 từ và chỉ chứa chữ cái.";
+  }
+
+  return null;
+}
+
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useContext(UserContext);
@@ -71,6 +92,25 @@ export default function RegisterScreen() {
       return;
     }
 
+    const fullNameError = validateFullName(fullName);
+    if (fullNameError) {
+      Toast.show({
+        type: "error",
+        text1: "Họ tên chưa hợp lệ",
+        text2: fullNameError,
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      Toast.show({
+        type: "error",
+        text1: "Mật khẩu chưa hợp lệ",
+        text2: "Mật khẩu phải có ít nhất 6 ký tự.",
+      });
+      return;
+    }
+
     if (password !== confirmPassword) {
       Toast.show({
         type: "error",
@@ -84,27 +124,29 @@ export default function RegisterScreen() {
       Toast.show({
         type: "error",
         text1: "Chưa đồng ý điều khoản",
-        text2: "Bạn cần đồng ý điều khoản và chính sách bảo mật.",
+        text2: "Bạn cần đồng ý điều khoản và chính sách bảo mật để tiếp tục.",
       });
       return;
     }
 
     try {
       setSubmitting(true);
-      await register({ fullName, email, password });
+      await register({
+        fullName: fullName.trim().replace(/\s+/g, " "),
+        email,
+        password,
+      });
       Toast.show({
         type: "success",
         text1: "Đăng ký thành công",
-        text2: "Tài khoản của bạn đã sẵn sàng.",
+        text2: "Tài khoản của bạn đã sẵn sàng để sử dụng.",
       });
       router.replace("/(tabs)/profile");
     } catch (error) {
       Toast.show({
         type: "error",
         text1: "Đăng ký thất bại",
-        text2:
-          error.response?.data?.message ||
-          "Không thể tạo tài khoản. Kiểm tra lại endpoint backend.",
+        text2: getUserFriendlyErrorMessage(error, "register"),
       });
     } finally {
       setSubmitting(false);
@@ -260,7 +302,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     color: "#1363D1",
     textAlign: "center",
-    paddingTop : 30
+    paddingTop: 30,
   },
   welcome: {
     marginTop: 5,
