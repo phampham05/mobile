@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useCallback, useContext } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { UserContext } from "../../context/UserContext";
 
 function InfoRow({ icon, label, value, onPress }) {
@@ -36,8 +36,14 @@ function InfoRow({ icon, label, value, onPress }) {
 }
 
 export default function Profile() {
-  const { user, loading, logout } = useContext(UserContext);
+  const { user, loading, logout, fetchUser } = useContext(UserContext);
   const router = useRouter();
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUser({ silent: true });
+    }, [fetchUser])
+  );
 
   if (loading) {
     return (

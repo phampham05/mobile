@@ -13,15 +13,11 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { UserContext } from "../../context/UserContext";
 import { getUserFriendlyErrorMessage } from "../../utils/errorMessages";
 
-const FULL_NAME_REGEX = /^[A-Za-zÀ-ỹ]+(?:\s+[A-Za-zÀ-ỹ]+)+$/u;
 const PHONE_REGEX = /^(0|\+84)\d{9}$/;
-
-function normalizeSpaces(value) {
-  return value.trim().replace(/\s+/g, " ");
-}
 
 function FormField({
   label,
@@ -55,7 +51,20 @@ function FormField({
   );
 }
 
+function validateFullName(name) {
+  if (!name.trim()) {
+    return "Vui lòng nhập họ và tên.";
+  }
+
+  if (name !== name.trim()) {
+    return "Họ và tên không được có khoảng trắng ở đầu hoặc cuối.";
+  }
+
+  return null;
+}
+
 export default function EditProfileScreen() {
+  const router = useRouter();
   const { user, updateUser } = useContext(UserContext);
 
   const [name, setName] = useState("");
@@ -74,14 +83,10 @@ export default function EditProfileScreen() {
 
   const validate = () => {
     const nextErrors = {};
-    const normalizedName = normalizeSpaces(name);
+    const fullNameError = validateFullName(name);
 
-    if (!normalizedName) {
-      nextErrors.name = "Vui lòng nhập họ và tên.";
-    } else if (normalizedName.length < 4) {
-      nextErrors.name = "Họ và tên phải có ít nhất 4 ký tự.";
-    } else if (!FULL_NAME_REGEX.test(normalizedName)) {
-      nextErrors.name = "Họ và tên phải gồm ít nhất 2 từ và chỉ chứa chữ cái.";
+    if (fullNameError) {
+      nextErrors.name = fullNameError;
     }
 
     if (phone.trim() && !PHONE_REGEX.test(phone.trim())) {
@@ -99,14 +104,22 @@ export default function EditProfileScreen() {
       setSubmitting(true);
 
       await updateUser({
-        name: normalizeSpaces(name),
+        name: name.trim(),
         phone: phone.trim(),
         address: address.trim(),
       });
 
-      Alert.alert("Cập nhật thành công", "Thông tin hồ sơ đã được lưu.");
+      Alert.alert("Cập nhật thành công", "Thông tin hồ sơ đã được lưu.", [
+        {
+          text: "OK",
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (error) {
-      Alert.alert("Không thể cập nhật hồ sơ", getUserFriendlyErrorMessage(error, "updateProfile"));
+      Alert.alert(
+        "Không thể cập nhật hồ sơ",
+        getUserFriendlyErrorMessage(error, "updateProfile")
+      );
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +146,9 @@ export default function EditProfileScreen() {
               <Text style={styles.avatarText}>{user.name?.trim()?.charAt(0)?.toUpperCase() || "U"}</Text>
             </View>
             <Text style={styles.avatarName}>{user.name || "Người dùng"}</Text>
-            <Text style={styles.avatarHint}>Bạn có thể cập nhật tên, số điện thoại và địa chỉ tại đây.</Text>
+            <Text style={styles.avatarHint}>
+              Bạn có thể cập nhật tên, số điện thoại và địa chỉ tại đây.
+            </Text>
           </View>
 
           <View style={styles.form}>
