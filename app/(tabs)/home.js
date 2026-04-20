@@ -109,7 +109,6 @@ export default function Home() {
       <Image source={{ uri: item.image || FALLBACK_IMAGE }} style={styles.featuredImage} />
       <View style={styles.featuredOverlay} />
       <View style={styles.featuredContent}>
-        <Text style={styles.featuredBadge}>EDITOR&apos;S PICK</Text>
         <Text style={styles.featuredTitle} numberOfLines={2}>
           {item.title}
         </Text>
@@ -164,7 +163,6 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <Text style={styles.pageTitle}>Trang chủ</Text>
       <Text style={styles.pageSubtitle}>
         Chào mừng {user?.name ? user.name.split(" ").slice(-1)[0] : "bạn"} đến với không gian đọc sách tối giản.
       </Text>

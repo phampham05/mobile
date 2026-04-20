@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../services/api";
@@ -27,12 +27,30 @@ const getStorage = () => {
   return AsyncStorage;
 };
 
+const pickProfileValue = (...values) => {
+  for (const value of values) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+      continue;
+    }
+
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+  }
+
+  return "";
+};
+
 const normalizeUser = (data = {}, fallback = {}) => ({
   id: data.id ?? fallback.id ?? "",
-  name: data.fullName ?? data.name ?? fallback.name ?? "",
-  email: data.email ?? fallback.email ?? "",
-  phone: data.phone ?? fallback.phone ?? "",
-  address: data.address ?? fallback.address ?? "",
+  name: pickProfileValue(data.fullName, data.name, fallback.name),
+  email: pickProfileValue(data.email, fallback.email),
+  phone: pickProfileValue(data.phone, fallback.phone),
+  address: pickProfileValue(data.address, fallback.address),
   avatar: fallback.avatar ?? DEFAULT_AVATAR,
 });
 
@@ -41,21 +59,23 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const getToken = async () => storage.getItem(TOKEN_KEY);
+  const getToken = useCallback(async () => storage.getItem(TOKEN_KEY), [storage]);
 
-  const saveToken = async (token) => {
+  const saveToken = useCallback(async (token) => {
     if (token) {
       await storage.setItem(TOKEN_KEY, token);
     }
-  };
+  }, [storage]);
 
-  const clearToken = async () => {
+  const clearToken = useCallback(async () => {
     await storage.removeItem(TOKEN_KEY);
-  };
+  }, [storage]);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       const token = await getToken();
 
       if (!token) {
@@ -64,9 +84,13 @@ export const UserProvider = ({ children }) => {
       }
 
       const data = await fetchMyInfoRequest();
-      const normalizedUser = normalizeUser(data);
+      let normalizedUser;
 
-      setUser(normalizedUser);
+      setUser((currentUser) => {
+        normalizedUser = normalizeUser(data, currentUser ?? {});
+        return normalizedUser;
+      });
+
       return normalizedUser;
     } catch (error) {
       console.log("Loi lay thong tin user:", error.response?.data || error.message);
@@ -74,9 +98,11 @@ export const UserProvider = ({ children }) => {
       setUser(null);
       return null;
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, [clearToken, getToken]);
 
   // Bootstrap auth state once on mount from persisted token.
   useEffect(() => {
@@ -91,7 +117,7 @@ export const UserProvider = ({ children }) => {
         }
 
         const data = await fetchMyInfoRequest();
-        setUser(normalizeUser(data));
+        setUser((currentUser) => normalizeUser(data, currentUser ?? {}));
       } catch (error) {
         console.log("Loi khoi tao user:", error.response?.data || error.message);
         await clearToken();
@@ -102,9 +128,9 @@ export const UserProvider = ({ children }) => {
     };
 
     bootstrapUser();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clearToken, getToken]);
 
-  const login = async ({ email, password }) => {
+  const login = useCallback(async ({ email, password }) => {
     try {
       setLoading(true);
 
@@ -130,9 +156,9 @@ export const UserProvider = ({ children }) => {
       setLoading(false);
       throw error;
     }
-  };
+  }, [clearToken, fetchUser, saveToken]);
 
-  const register = async ({ fullName, email, password, dob }) => {
+  const register = useCallback(async ({ fullName, email, password, dob }) => {
     try {
       setLoading(true);
 
@@ -145,9 +171,9 @@ export const UserProvider = ({ children }) => {
       setLoading(false);
       throw error;
     }
-  };
+  }, [clearToken, login]);
 
-  const updateUser = async (updatedData) => {
+  const updateUser = useCallback(async (updatedData) => {
     try {
       const payload = {
         fullName: updatedData.name,
@@ -159,19 +185,34 @@ export const UserProvider = ({ children }) => {
         payload.password = updatedData.password.trim();
       }
 
+      const optimisticUser = {
+        ...(user ?? {}),
+        name: updatedData.name ?? user?.name ?? "",
+        phone: updatedData.phone ?? user?.phone ?? "",
+        address: updatedData.address ?? user?.address ?? "",
+      };
+
+      setUser(optimisticUser);
+
       const response = await api.put("/users/me", payload);
       const data = response?.data?.result ?? response?.data ?? {};
-      const nextUser = normalizeUser(data, user ?? {});
+      const nextUser = normalizeUser(data, optimisticUser);
 
       setUser(nextUser);
-      return true;
+
+      try {
+        const refreshedUser = await fetchUser();
+        return refreshedUser ?? nextUser;
+      } catch {
+        return nextUser;
+      }
     } catch (error) {
       console.log("Loi cap nhat ho so:", error.response?.data || error.message);
       throw error;
     }
-  };
+  }, [fetchUser, user]);
 
-  const changePassword = async (currentPassword, newPassword) => {
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
     try {
       await changePasswordRequest(currentPassword, newPassword);
       return true;
@@ -179,9 +220,9 @@ export const UserProvider = ({ children }) => {
       console.log("Loi doi mat khau:", error.response?.data || error.message);
       throw error;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const token = await getToken();
 
@@ -195,7 +236,7 @@ export const UserProvider = ({ children }) => {
       setUser(null);
       setLoading(false);
     }
-  };
+  }, [clearToken, getToken]);
 
   return (
     <UserContext.Provider

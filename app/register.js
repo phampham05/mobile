@@ -17,8 +17,6 @@ import Toast from "react-native-toast-message";
 import { UserContext } from "../context/UserContext";
 import { getUserFriendlyErrorMessage } from "../utils/errorMessages";
 
-const FULL_NAME_REGEX = /^[A-Za-zÀ-ỹ]+(?:\s+[A-Za-zÀ-ỹ]+)+$/u;
-
 function AuthInput({
   label,
   icon,
@@ -52,18 +50,12 @@ function AuthInput({
 }
 
 function validateFullName(fullName) {
-  const normalizedName = fullName.trim().replace(/\s+/g, " ");
-
-  if (!normalizedName) {
+  if (!fullName.trim()) {
     return "Vui lòng nhập họ và tên.";
   }
 
-  if (normalizedName.length < 4) {
-    return "Họ và tên phải có ít nhất 4 ký tự.";
-  }
-
-  if (!FULL_NAME_REGEX.test(normalizedName)) {
-    return "Họ và tên phải gồm ít nhất 2 từ và chỉ chứa chữ cái.";
+  if (fullName !== fullName.trim()) {
+    return "Họ và tên không được có khoảng trắng ở đầu hoặc cuối.";
   }
 
   return null;
@@ -124,7 +116,7 @@ export default function RegisterScreen() {
       Toast.show({
         type: "error",
         text1: "Chưa đồng ý điều khoản",
-        text2: "Bạn cần đồng ý điều khoản và chính sách bảo mật để tiếp tục.",
+        text2: "Bạn cần đọc và đồng ý điều khoản cùng chính sách bảo mật để tiếp tục.",
       });
       return;
     }
@@ -132,7 +124,7 @@ export default function RegisterScreen() {
     try {
       setSubmitting(true);
       await register({
-        fullName: fullName.trim().replace(/\s+/g, " "),
+        fullName: fullName.trim(),
         email,
         password,
       });
@@ -225,20 +217,29 @@ export default function RegisterScreen() {
               }
             />
 
-            <Pressable
-              style={styles.termsRow}
-              onPress={() => setAcceptedTerms((value) => !value)}
-            >
-              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
-                {acceptedTerms ? (
-                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+            <View style={styles.legalCard}>
+              <Pressable
+                style={styles.termsRow}
+                onPress={() => setAcceptedTerms((value) => !value)}
+              >
+                <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                  {acceptedTerms ? (
+                    <Ionicons name="checkmark" size={18} color="#FFFFFF" />
                 ) : null}
               </View>
               <Text style={styles.termsText}>
-                Tôi đồng ý với <Text style={styles.termsLink}>điều khoản</Text> và{" "}
-                <Text style={styles.termsLink}>chính sách bảo mật</Text> của BookStore.
+                Tôi xác nhận đã đọc và đồng ý với{" "}
+                <Text style={styles.termsLink} onPress={() => router.push("/legal/terms")}>
+                  Điều khoản sử dụng
+                </Text>
+                {" "}và{" "}
+                <Text style={styles.termsLink} onPress={() => router.push("/legal/privacy")}>
+                  Chính sách bảo mật
+                </Text>{" "}
+                của BookStore.
               </Text>
             </Pressable>
+            </View>
 
             <Pressable
               style={[styles.primaryButton, submitting && styles.buttonDisabled]}
@@ -344,11 +345,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#364152",
   },
+  legalCard: {
+    backgroundColor: "#EEF4FF",
+    borderRadius: 18,
+    padding: 16,
+    gap: 12,
+  },
   termsRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginTop: 8,
   },
   checkbox: {
     width: 32,
@@ -369,7 +375,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 24,
-    color: "#5F6874",
+    color: "#425466",
   },
   termsLink: {
     color: "#1363D1",
