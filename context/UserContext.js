@@ -27,12 +27,30 @@ const getStorage = () => {
   return AsyncStorage;
 };
 
+const pickProfileValue = (...values) => {
+  for (const value of values) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+      continue;
+    }
+
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+  }
+
+  return "";
+};
+
 const normalizeUser = (data = {}, fallback = {}) => ({
   id: data.id ?? fallback.id ?? "",
-  name: data.fullName ?? data.name ?? fallback.name ?? "",
-  email: data.email ?? fallback.email ?? "",
-  phone: data.phone ?? fallback.phone ?? "",
-  address: data.address ?? fallback.address ?? "",
+  name: pickProfileValue(data.fullName, data.name, fallback.name),
+  email: pickProfileValue(data.email, fallback.email),
+  phone: pickProfileValue(data.phone, fallback.phone),
+  address: pickProfileValue(data.address, fallback.address),
   avatar: fallback.avatar ?? DEFAULT_AVATAR,
 });
 
@@ -66,9 +84,13 @@ export const UserProvider = ({ children }) => {
       }
 
       const data = await fetchMyInfoRequest();
-      const normalizedUser = normalizeUser(data);
+      let normalizedUser;
 
-      setUser(normalizedUser);
+      setUser((currentUser) => {
+        normalizedUser = normalizeUser(data, currentUser ?? {});
+        return normalizedUser;
+      });
+
       return normalizedUser;
     } catch (error) {
       console.log("Loi lay thong tin user:", error.response?.data || error.message);
@@ -95,7 +117,7 @@ export const UserProvider = ({ children }) => {
         }
 
         const data = await fetchMyInfoRequest();
-        setUser(normalizeUser(data));
+        setUser((currentUser) => normalizeUser(data, currentUser ?? {}));
       } catch (error) {
         console.log("Loi khoi tao user:", error.response?.data || error.message);
         await clearToken();
