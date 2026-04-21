@@ -80,6 +80,7 @@ export default function BookDetail() {
       const addedBook = book?.title || "Sách";
 
       Alert.alert("Thành công", `Đã thêm ${quantity} "${addedBook}" vào giỏ hàng!`);
+      setQuantity(1);
     } catch (error) {
       Alert.alert("Thông báo", "Không thể thêm vào giỏ hàng.");
     } finally {
@@ -92,28 +93,24 @@ export default function BookDetail() {
       Alert.alert("Thông báo", "Số lượng không hợp lệ.");
       return;
     }
-
-    router.push({
-      pathname: "/checkout",
-      params: {
-        bookId: bookId,
-        quantity: quantity,
-      },
-    });
   };
 
-  const renderStars = (rating = 0) => (
-    <View style={styles.starContainer}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Ionicons
-          key={star}
-          name={star <= Math.round(rating) ? "star" : "star-outline"}
-          size={18}
-          color="#FFD700"
-        />
-      ))}
-    </View>
-  );
+  const renderStars = (rating = 0) => {
+    const safe = Number(rating) || 0;
+  
+    return (
+      <View style={styles.starContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Ionicons
+            key={star}
+            name={safe >= star ? "star" : "star-outline"}
+            size={18}
+            color="#FFD700"
+          />
+        ))}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -137,6 +134,7 @@ export default function BookDetail() {
     book.image || "https://via.placeholder.com/200x300.png?text=No+Image";
 
   const price = book.price ?? 0;
+  const safeRating = Number(book?.rating) || 0;
 
   return (
     <ScrollView style={styles.container}>
@@ -149,10 +147,10 @@ export default function BookDetail() {
         <Text style={styles.category}>Thể loại: {book.category}</Text>
 
         <View style={styles.ratingRow}>
-          {renderStars(book.rating)}
-          <Text style={styles.ratingText}>
-            {book.rating?.toFixed(1) || "0.0"}/5
-          </Text>
+          {renderStars(safeRating)}
+            <Text style={styles.ratingText}>
+              {safeRating.toFixed(1)}/5
+            </Text>
         </View>
 
         <Text style={styles.price}>

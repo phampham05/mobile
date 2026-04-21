@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,8 @@ import {
 } from "../../services/cartService";
 import { getUserFriendlyErrorMessage } from "../../utils/errorMessages";
 import { UserContext } from "../../context/UserContext";
+import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/100x150.png?text=No+Image";
 
@@ -26,9 +28,16 @@ export default function Cart() {
   const [loading, setLoading] = useState(true);
   const [selectedItems, setSelectedItems] = useState([]);
   const isSelected = (id) => selectedItems.includes(id);
+  const router = useRouter();
   const isAllSelected =
     cartItems.length > 0 &&
     selectedItems.length === cartItems.length;
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCart();
+    }, [])
+  );
 
   useEffect(() => {
     if (!user) {
@@ -112,19 +121,6 @@ export default function Cart() {
       .reduce((sum, item) => sum + item.quantity * item.price, 0);
   }, [cartItems, selectedItems]);
 
-  // const renderStars = (rating = 0) => (
-  //   <View style={styles.stars}>
-  //     {[1, 2, 3, 4, 5].map((star) => (
-  //       <Ionicons
-  //         key={star}
-  //         name={star <= Math.round(rating) ? "star" : "star-outline"}
-  //         size={14}
-  //         color="#FFD700"
-  //       />
-  //     ))}
-  //   </View>
-  // );
-
   const renderStars = (rating = 0) => {
     const safeRating = Number(rating) || 0;
   
@@ -165,38 +161,55 @@ export default function Cart() {
       <View style={styles.card}>
         
         {/* SELECT ITEM */}
-        <TouchableOpacity onPress={() => toggleSelectItem(item.id)}>
+        <TouchableOpacity 
+          onPress={() => toggleSelectItem(item.id)}
+          style={styles.checkbox}
+        >
           <Ionicons
             name={isSelected(item.id) ? "checkbox" : "square-outline"}
             size={22}
             color={isSelected(item.id) ? "#1E88E5" : "#999"}
           />
         </TouchableOpacity>
+
+        {/* CLICK AREA */}
+        <TouchableOpacity
+          style={{ flexDirection: "row", flex: 1 }}
+          onPress={() =>
+            router.push({
+              pathname: "/book/[id]",
+              params: { id: item.bookId },
+            })
+          }
+        >
+          {/* IMAGE */}
+          <Image source={{ uri: imageUrl }} style={styles.image} />
   
-        {/* IMAGE */}
-        <Image source={{ uri: imageUrl }} style={styles.image} />
-  
-        {/* INFO */}
-        <View style={styles.info}>
-          <Text style={styles.title}>{book?.title}</Text>
-          <Text style={styles.author}>{book?.author}</Text>
-          {renderStars(book?.rating || 0)}
-          <Text style={styles.price}>
-            {item.price.toLocaleString("vi-VN")} đ
-          </Text>
-  
-          <View style={styles.quantityContainer}>
-            <TouchableOpacity onPress={() => decreaseQuantity(item)}>
-              <Ionicons name="remove-circle-outline" size={22} />
-            </TouchableOpacity>
-  
-            <Text style={styles.quantity}>{item.quantity}</Text>
-  
-            <TouchableOpacity onPress={() => increaseQuantity(item)}>
-              <Ionicons name="add-circle-outline" size={22} />
-            </TouchableOpacity>
+          {/* INFO */}
+          <View style={styles.info}>
+            <Text style={styles.title}>{book?.title}</Text>
+            <Text style={styles.author}>{book?.author}</Text>
+
+            {renderStars(item?.book?.rating || 0)}
+
+            <Text style={styles.price}>
+              {item.price.toLocaleString("vi-VN")} đ
+            </Text>
+
+            <View style={styles.quantityContainer}>
+              <TouchableOpacity onPress={() => decreaseQuantity(item)}>
+                <Ionicons name="remove-circle-outline" size={22} />
+              </TouchableOpacity>
+    
+              <Text style={styles.quantity}>{item.quantity}</Text>
+    
+              <TouchableOpacity onPress={() => increaseQuantity(item)}>
+                <Ionicons name="add-circle-outline" size={22} />
+              </TouchableOpacity>
           </View>
         </View>
+          
+        </TouchableOpacity>
   
         {/* DELETE */}
         <TouchableOpacity onPress={() => removeItem(item.id)}>
@@ -369,5 +382,8 @@ const styles = StyleSheet.create({
   selectAllText: {
     fontSize: 14,
     color: "#333",
+  },
+  checkbox: {
+    marginRight: 8,
   },
 });

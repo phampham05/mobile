@@ -1,4 +1,5 @@
 import api from "./api";
+import { getBookCached } from "./bookCacheService";
 
 const resolvePayload = (response) => response?.data?.result ?? response?.data ?? {};
 
@@ -13,11 +14,7 @@ const normalizeCartItem = (item = {}) => ({
     title: item.title ?? "Chưa có tên sách",
     image: item.image ?? null,
     author: item.author ?? "",
-    rating:
-      item.rating ??
-      item.book?.rating ??
-      item.bookRating ??
-      0,
+    rating: item.rating ?? item.book?.rating ?? 0,
   },
 });
 
@@ -36,9 +33,28 @@ export const getCart = async () => {
 export const getCartWithBookDetails = async () => {
   try {
     const cart = await getCart();
-    return cart.items.map(normalizeCartItem);
+
+    const items = await Promise.all(
+      cart.items.map(async (item) => {
+        try {
+          const book = await getBookCached(item.bookId);
+          return normalizeCartItem({
+            ...item,
+            title: book?.title,
+            image: book?.image,
+            author: book?.author,
+            rating: book?.rating,
+          });
+        } catch (e) {
+          console.log("Lỗi lấy book:", e);
+          return normalizeCartItem(item);
+        }
+      })
+    );
+
+    return items;
   } catch (error) {
-    console.error("Lỗi khi lấy giỏ hàng:", error);
+    console.error("Lỗi khi lấy cart kèm book:", error);
     throw error;
   }
 };

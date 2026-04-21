@@ -18,7 +18,7 @@ export default function RootLayout() {
             },
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "Trở về", }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="register" options={{ headerShown: false }} />
           <Stack.Screen name="profile/edit" options={{ title: "Chỉnh sửa hồ sơ" }} />
@@ -30,6 +30,16 @@ export default function RootLayout() {
           <Stack.Screen
             name="legal/privacy"
             options={{ title: "Chính sách bảo mật" }}
+          />
+
+          <Stack.Screen
+            name="book/[id]"
+            options={{ title: "Chi tiết sách" }}
+          />
+
+          <Stack.Screen
+            name="orders/[id]"
+            options={{ title: "Chi tiết đơn hàng" }}
           />
           {/* <Stack.Screen name="modal" options={{ presentation: "modal" }} /> */}
         </Stack>
