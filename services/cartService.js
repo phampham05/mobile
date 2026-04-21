@@ -13,7 +13,11 @@ const normalizeCartItem = (item = {}) => ({
     title: item.title ?? "Chưa có tên sách",
     image: item.image ?? null,
     author: item.author ?? "",
-    rating: item.rating ?? 0,
+    rating:
+      item.rating ??
+      item.book?.rating ??
+      item.bookRating ??
+      0,
   },
 });
 

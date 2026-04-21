@@ -24,6 +24,11 @@ export default function Cart() {
   const { user } = useContext(UserContext);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const isSelected = (id) => selectedItems.includes(id);
+  const isAllSelected =
+    cartItems.length > 0 &&
+    selectedItems.length === cartItems.length;
 
   useEffect(() => {
     if (!user) {
@@ -85,23 +90,72 @@ export default function Cart() {
     ]);
   };
 
-  const totalPrice = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.quantity * item.price, 0),
-    [cartItems]
-  );
+  const toggleSelectItem = (id) => {
+    setSelectedItems((prev) =>
+      prev.includes(id)
+        ? prev.filter((i) => i !== id)
+        : [...prev, id]
+    );
+  };
 
-  const renderStars = (rating = 0) => (
-    <View style={styles.stars}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Ionicons
-          key={star}
-          name={star <= Math.round(rating) ? "star" : "star-outline"}
-          size={14}
-          color="#FFD700"
-        />
-      ))}
-    </View>
-  );
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(cartItems.map((item) => item.id));
+    }
+  };
+
+  const totalPrice = useMemo(() => {
+    return cartItems
+      .filter((item) => selectedItems.includes(item.id))
+      .reduce((sum, item) => sum + item.quantity * item.price, 0);
+  }, [cartItems, selectedItems]);
+
+  // const renderStars = (rating = 0) => (
+  //   <View style={styles.stars}>
+  //     {[1, 2, 3, 4, 5].map((star) => (
+  //       <Ionicons
+  //         key={star}
+  //         name={star <= Math.round(rating) ? "star" : "star-outline"}
+  //         size={14}
+  //         color="#FFD700"
+  //       />
+  //     ))}
+  //   </View>
+  // );
+
+  const renderStars = (rating = 0) => {
+    const safeRating = Number(rating) || 0;
+  
+    return (
+      <View style={styles.stars}>
+        {[1, 2, 3, 4, 5].map((star) => {
+          let iconName = "star-outline";
+  
+          if (safeRating >= star) {
+            iconName = "star"; // full
+          } else if (safeRating >= star - 0.5) {
+            iconName = "star-half"; // half
+          }
+  
+          return (
+            <Ionicons
+              key={star}
+              name={iconName}
+              size={14}
+              color="#FFD700"
+            />
+          );
+        })}
+  
+        {/* optional: hiển thị số */}
+        <Text style={{ marginLeft: 4, fontSize: 12 }}>
+          {safeRating.toFixed(1)}
+        </Text>
+      </View>
+    );
+  };
 
   const renderItem = ({ item }) => {
     const book = item.book;
@@ -109,30 +163,46 @@ export default function Cart() {
 
     return (
       <View style={styles.card}>
+        
+        {/* SELECT ITEM */}
+        <TouchableOpacity onPress={() => toggleSelectItem(item.id)}>
+          <Ionicons
+            name={isSelected(item.id) ? "checkbox" : "square-outline"}
+            size={22}
+            color={isSelected(item.id) ? "#1E88E5" : "#999"}
+          />
+        </TouchableOpacity>
+  
+        {/* IMAGE */}
         <Image source={{ uri: imageUrl }} style={styles.image} />
-
+  
+        {/* INFO */}
         <View style={styles.info}>
-          <Text style={styles.title}>{book?.title || "Đang cập nhật"}</Text>
-          <Text style={styles.author}>{book?.author || "Tác giả đang cập nhật"}</Text>
+          <Text style={styles.title}>{book?.title}</Text>
+          <Text style={styles.author}>{book?.author}</Text>
           {renderStars(book?.rating || 0)}
-          <Text style={styles.price}>{item.price.toLocaleString("vi-VN")} đ</Text>
-
+          <Text style={styles.price}>
+            {item.price.toLocaleString("vi-VN")} đ
+          </Text>
+  
           <View style={styles.quantityContainer}>
             <TouchableOpacity onPress={() => decreaseQuantity(item)}>
               <Ionicons name="remove-circle-outline" size={22} />
             </TouchableOpacity>
-
+  
             <Text style={styles.quantity}>{item.quantity}</Text>
-
+  
             <TouchableOpacity onPress={() => increaseQuantity(item)}>
               <Ionicons name="add-circle-outline" size={22} />
             </TouchableOpacity>
           </View>
         </View>
-
+  
+        {/* DELETE */}
         <TouchableOpacity onPress={() => removeItem(item.id)}>
           <Ionicons name="trash-outline" size={22} color="red" />
         </TouchableOpacity>
+  
       </View>
     );
   };
@@ -165,8 +235,34 @@ export default function Cart() {
       />
 
       <View style={styles.footer}>
-        <Text style={styles.totalText}>Tổng tiền: {totalPrice.toLocaleString("vi-VN")} đ</Text>
+
+      {/* SELECT ALL */}
+      <TouchableOpacity onPress={toggleSelectAll} style={styles.selectAllContainer}>
+        <Ionicons
+          name={isAllSelected ? "checkbox" : "square-outline"}
+          size={22}
+          color={isAllSelected ? "#1E88E5" : "#999"}
+        />
+
+        <Text style={styles.selectAllText}>
+          Chọn tất cả
+        </Text>
+      </TouchableOpacity>
+
+      {/* TOTAL */}
+      <Text style={styles.totalText}>
+        Tổng tiền: {totalPrice.toLocaleString("vi-VN")} đ
+      </Text>
+
+      {/* CHECKOUT BUTTON */}
+      <TouchableOpacity style={styles.checkoutBtn}>
+        <Text style={{ color: "#fff", fontWeight: "bold" }}>
+          Thanh toán ({selectedItems.length})
+        </Text>
+      </TouchableOpacity>
+
       </View>
+
     </View>
   );
 }
@@ -257,5 +353,21 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
     color: "#6B7280",
+  },
+  checkoutBtn: {
+    marginTop: 10,
+    backgroundColor: "#1E88E5",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  selectAllContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  selectAllText: {
+    fontSize: 14,
+    color: "#333",
   },
 });

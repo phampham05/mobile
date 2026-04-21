@@ -31,7 +31,7 @@ export default function RootLayout() {
             name="legal/privacy"
             options={{ title: "Chính sách bảo mật" }}
           />
-          <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+          {/* <Stack.Screen name="modal" options={{ presentation: "modal" }} /> */}
         </Stack>
         <Toast />
       </CartProvider>

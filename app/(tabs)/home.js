@@ -17,6 +17,7 @@ import { useFocusEffect } from "expo-router";
 import { UserContext } from "../../context/UserContext";
 import { getBooks } from "../../services/bookService";
 import { getUserFriendlyErrorMessage } from "../../utils/errorMessages";
+import { useRouter } from "expo-router";
 
 const CATEGORIES = [
   { key: "fiction", label: "Fiction", icon: "book-outline" },
@@ -40,6 +41,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const router = useRouter();
+
+  const goToBookDetail = (id) => {
+    router.push(`/book/${id}`);
+  };
 
   const fetchHomeBooks = useCallback(async (showLoader = true) => {
     try {
@@ -105,7 +111,7 @@ export default function Home() {
   };
 
   const renderFeaturedCard = (item) => (
-    <Pressable key={item.id} style={styles.featuredCard} onPress={showBookDetailDisabledNotice}>
+    <Pressable key={item.id} style={styles.featuredCard} onPress={() => goToBookDetail(item.id)}>
       <Image source={{ uri: item.image || FALLBACK_IMAGE }} style={styles.featuredImage} />
       <View style={styles.featuredOverlay} />
       <View style={styles.featuredContent}>
@@ -117,7 +123,7 @@ export default function Home() {
   );
 
   const renderLatestItem = ({ item }) => (
-    <Pressable style={styles.latestCard} onPress={showBookDetailDisabledNotice}>
+    <Pressable style={styles.latestCard} onPress={() => goToBookDetail(item.id)}>
       <Image source={{ uri: item.image || FALLBACK_IMAGE }} style={styles.latestImage} />
       <View style={styles.latestInfo}>
         <Text style={styles.latestTitle} numberOfLines={2}>
