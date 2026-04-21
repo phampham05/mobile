@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
+import AppTopBar from "../../components/AppTopBar";
 import { UserContext } from "../../context/UserContext";
 
 function InfoRow({ icon, label, value, onPress }) {
@@ -56,59 +57,66 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <View style={styles.emptyContainer}>
-        <Ionicons name="person-circle-outline" size={78} color="#94A3B8" />
-        <Text style={styles.emptyTitle}>Bạn chưa đăng nhập</Text>
-        <Text style={styles.emptyText}>
-          Đăng nhập để xem và quản lý thông tin tài khoản của bạn.
-        </Text>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <AppTopBar />
+        <View style={styles.emptyContainer}>
+          <Ionicons name="person-circle-outline" size={78} color="#94A3B8" />
+          <Text style={styles.emptyTitle}>Bạn chưa đăng nhập</Text>
+          <Text style={styles.emptyText}>
+            Đăng nhập để xem và quản lý thông tin tài khoản của bạn.
+          </Text>
 
-        <Pressable style={styles.primaryButton} onPress={() => router.push("/login")}>
-          <Text style={styles.primaryButtonText}>Đăng nhập</Text>
-        </Pressable>
+          <Pressable style={styles.primaryButton} onPress={() => router.push("/login")}>
+            <Text style={styles.primaryButtonText}>Đăng nhập</Text>
+          </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => router.push("/register")}>
-          <Text style={styles.secondaryButtonText}>Tạo tài khoản</Text>
-        </Pressable>
-      </View>
+          <Pressable style={styles.secondaryButton} onPress={() => router.push("/register")}>
+            <Text style={styles.secondaryButtonText}>Tạo tài khoản</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     );
   }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.heroCard}>
-        <Image source={{ uri: user.avatar }} style={styles.avatar} />
-        <Text style={styles.name}>{user.name || "Người dùng"}</Text>
-        <Text style={styles.email}>{user.email || "Chưa có email"}</Text>
-      </View>
+      <AppTopBar />
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
-        <InfoRow icon="mail-outline" label="Email" value={user.email} />
-        <InfoRow icon="call-outline" label="Số điện thoại" value={user.phone} />
-        <InfoRow icon="location-outline" label="Địa chỉ" value={user.address} />
-      </View>
+      <View style={styles.main}>
+        <View style={styles.heroCard}>
+          <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          <Text style={styles.name}>{user.name || "Người dùng"}</Text>
+          <Text style={styles.email}>{user.email || "Chưa có email"}</Text>
+        </View>
 
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Tài khoản</Text>
-        <InfoRow
-          icon="create-outline"
-          label="Chỉnh sửa hồ sơ"
-          value="Cập nhật tên, số điện thoại, địa chỉ"
-          onPress={() => router.push("/profile/edit")}
-        />
-        <InfoRow
-          icon="lock-closed-outline"
-          label="Đổi mật khẩu"
-          value="Thay đổi mật khẩu đăng nhập"
-          onPress={() => router.push("/profile/change-password")}
-        />
-      </View>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
+          <InfoRow icon="mail-outline" label="Email" value={user.email} />
+          <InfoRow icon="call-outline" label="Số điện thoại" value={user.phone} />
+          <InfoRow icon="location-outline" label="Địa chỉ" value={user.address} />
+        </View>
 
-      <Pressable style={styles.logoutButton} onPress={logout}>
-        <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-        <Text style={styles.logoutText}>Đăng xuất</Text>
-      </Pressable>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Tài khoản</Text>
+          <InfoRow
+            icon="create-outline"
+            label="Chỉnh sửa hồ sơ"
+            value="Cập nhật tên, số điện thoại, địa chỉ"
+            onPress={() => router.push("/profile/edit")}
+          />
+          <InfoRow
+            icon="lock-closed-outline"
+            label="Đổi mật khẩu"
+            value="Thay đổi mật khẩu đăng nhập"
+            onPress={() => router.push("/profile/change-password")}
+          />
+        </View>
+
+        <Pressable style={styles.logoutButton} onPress={logout}>
+          <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.logoutText}>Đăng xuất</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -116,17 +124,21 @@ export default function Profile() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F7F8FB",
+    backgroundColor: "#F7F9FB",
   },
   content: {
-    padding: 20,
     paddingBottom: 32,
+  },
+  main: {
+    padding: 20,
+    paddingTop: 24,
+    paddingBottom: 140,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F7F8FB",
+    backgroundColor: "#F7F9FB",
   },
   loadingText: {
     marginTop: 12,
@@ -134,11 +146,10 @@ const styles = StyleSheet.create({
     color: "#4B5563",
   },
   emptyContainer: {
-    flex: 1,
+    minHeight: 620,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 28,
-    backgroundColor: "#F7F8FB",
   },
   emptyTitle: {
     marginTop: 16,
@@ -263,6 +274,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
+    marginTop: 4,
   },
   logoutText: {
     color: "#FFFFFF",
